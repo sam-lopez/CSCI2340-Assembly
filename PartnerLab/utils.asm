@@ -52,9 +52,8 @@ jr $ra
 #           an integer
 # Parameters:
 # $a0 - label to print
-# $a1 - integer to print
 # Returns
-# None
+# $v0 - integer entered
 ######################################################
 .text
 PromptInt:
@@ -66,6 +65,31 @@ PromptInt:
 	# need to move it anywhere.
 	move $a0, $a1
 	li $v0, 5
+	syscall
+	#return
+jr $ra
+
+
+#####################################################
+# Function: PromptString - prints a label and prompts for
+#           a string
+# Parameters:
+# $a0 - label to print
+# $a1 - size of string
+# $a2 - label of string 
+# Returns
+# none
+######################################################
+.text
+PromptString:
+	# Print the prompt, which is already in $a0
+	li $v0, 4
+	syscall
+	# Read the string value.  Note that at the end of the
+	# syscall the value is already in label inputStr, so there is no
+	# need to move it anywhere.
+	move $a0, $a2
+	li $v0, 8
 	syscall
 	#return
 jr $ra
@@ -83,3 +107,37 @@ PrintString:
 	syscall
 	jr $ra
 
+#####################################################
+# Function: PromptCharacter - prints a label and prompts for
+#           a character
+# Parameters:
+# $a0 - label to print
+# Returns
+# $v0 - character entered
+######################################################
+.text
+PromptCharacter:
+	# Print the prompt, which is already in $a0
+	li $v0, 4
+	syscall
+	# Read the character value.  Note that at the end of the
+	# syscall the value needs to be saved in $v0
+	li $v0, 12
+	syscall
+	addiu $v0, $v0, 0  # $v0 gets the next char
+	#return
+jr $ra
+
+#####################################################
+# Function: PrintCharacter - prints a character
+# Parameters:
+# $a0 - character to print
+# Returns
+# None
+######################################################
+.text
+PrintCharacter:	
+	li $v0, 11       
+	syscall
+jr $ra
+  
