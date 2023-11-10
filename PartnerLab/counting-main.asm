@@ -1,6 +1,7 @@
-# Partner’s name: Samantha Lopez-Montano & Connor
+# Partner’s name: Samantha Lopez-Montano & Connor Myers
 # 11-13-23
 # Program: Lab – Partner Work
+# Sam worked on 
 
 .text
 main:
