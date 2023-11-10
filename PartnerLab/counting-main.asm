@@ -14,15 +14,16 @@ jal PromptString
 # prompt for character a0 - prompt label
 la $a0, promptCha
 jal PromptCharacter
-move $s0, $v0	# input moved from $v0 to $s0
+move $s7, $v0	# input moved from $v0 to $s7
 jal PrintNewLine
 
 # load/move user input into parameters for procedure
 la $a0, inputStr # move string into $a0 for parameter of procedure
-move $a1, $s0 # move character into $a1 for parameter of procedure
+move $a1, $s7 # move character into $a1 for parameter of procedure
 
 # call procedure
-#jal CountOccur
+jal CountOccur
+move $s6, $v0 # calculation moved from $v0 to $s6
 
 # print the search output and string searched
 la $a0, outStr
@@ -34,15 +35,14 @@ jal PrintString
 la $a0, outCh
 jal PrintString
 # print the character searched for
-move $a0, $s0
+move $a0, $s7
 jal PrintCharacter
-# print space between character and value
-la $a0, space
-jal PrintString
 
 # print the value from CountOccur
-#
-#jal PrintInt
+# print space between character and value
+la $a0, space
+move $a1, $s6
+jal PrintInt
 # print the string label times
 la $a0, outTime
 jal PrintString
