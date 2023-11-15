@@ -7,51 +7,91 @@ main:
 	# call min procedure
 	la $a0, A	# load location of array into parameter 
 	lw $a1, size	# size of the array loaded into parameter
-	jal Minimum	
-	move $s2, $v0 # save minimum value to $s2 to be used later
-		
+	jal Minimum	# returns min in $v0
+	sw $v0, min	# saves min to be used later
+	# Print outputs
+	la $a0, outMin
+	lw $a1, min	# Set up parameter for printing min
+	jal PrintInt
+	jal PrintNewLine
+	
 	# call max procedure
 	la $a0, A	# load location of array into parameter 
 	lw $a1, size	# size of the array loaded into parameter
-	jal Maximum	# inside using $t6 as temp max
-	move $s3, $v0 # save minimum value to $s3 to be used later
+	jal Maximum	# returns max in $v0
+	sw $v0, max	# saves max to be used later
+	# Print outputs
+	la $a0, outMax
+	lw $a1, max	# Set up parameter for printing max
+	jal PrintInt
+	jal PrintNewLine
 		
 	# call sum procedure
 	la $a0, A	# load location of array into parameter 
 	lw $a1, size	# size of the array loaded into parameter
-	jal Sum
-	move $s4, $v0 # save sum value to $s4 to be used later
+	jal Sum		# returns sum in $v0
+	sw $v0, sum	# saves sum to be used later
+	# Print outputs
+	la $a0, outSum
+	lw $a1, sum	# Set up parameter for printing sum
+	jal PrintInt
+	jal PrintNewLine
 	
 	# call avg procedure
-	move $a0, $s4	# load sum into parameter
+	lw $a0, sum	# load sum into parameter
 	lw $a1, size	# size of the array loaded into parameter
-	
-	# Print outputs
-	la $a0, outMin
-	move $a1,$s2	# Set up parameter for printing min
-	jal PrintInt
-	jal PrintNewLine
-		
-	la $a0, outMax
-	move $a1,$s3	# Set up parameter for printing max
-	jal PrintInt
-	jal PrintNewLine
-		
-	la $a0, outSum
-	move $a1,$s4	# Set up parameter for printing sum
-	jal PrintInt
-	jal PrintNewLine
-		
+	jal Average	# returns avg in $v0
+	sw $v0, average	# saves avg to be used later
+	# Print outputs	
 	la $a0, outAvg
-	move $a1,$s5	# Set up parameter for printing avg
+	lw $a1, average	# Set up parameter for printing avg
 	jal PrintInt
 	jal PrintNewLine
+	
+	# call reverseArray procedure
+	la $a0, A
+	la $a1, B
+	lw $a2, size
+	jal reverseArray
+	# Print output
+	la $a0, outRev
+	jal PrintString
+	la $a0, B	# load address of array B into $a0
+	lw $a1, size	# load size of array into $a1
+	# loop through array
+	li $t0, 0        # start index of array at 0
+	# Loop through the array
+	start_loop:
+		# Check if at end of array
+		bge $t0,$a1, exit_loop	# if index >= size exit
+		
+		# grab the element from the array
+		li $t2,0               # initialize postion in the array
+       		mul $t2,$t0,4          # calculate how far into array to go (index*4)
+        		add $t2,$t2,$a0        # set memory location of element in the array
+		lw $t1,($t2)           # load the value in array[index] into $t1 to use for printing
+		
+		# Print integer. The integer value is in $a1, and 
+		# must # be first moved to $a0.
+		move $a0, $t1	# Set up parameter for printing reversed array element
+		li $v0, 1
+		syscall
+		
+		# load comma to print
+		la $a0, outComma
+		jal PrintString
+		
+		# End of for loop here
+    		addi $t0,$t0,1	# increments index
+	    	j start_loop	# goes back to start of loop
+	exit_loop:
+		
 		
 	# clean exit
 	jal Exit
 .data
 A: .word 11, 250, 20, 70, 60, 140,150, 80, 90,100, 1, 30, 40,120,130, 5
-#B: .space
+B: .space 64 # length of array * 4 = 16*4
 size: .word 16 # length of array A & B
 min: .word 0
 max: .word 0
@@ -62,11 +102,12 @@ outMin: .asciiz "The minimum is "
 outMax: .asciiz "The maximum is "
 outSum: .asciiz "The sum is "
 outAvg: .asciiz "The average is "
-element: .asciiz "\nCurrent value: "
+outRev: .asciiz "The reversed array is: "
+outComma: .asciiz " , "
 .include "lopez-sami-utils.asm"
 
 #####################################################
-# Function: Minimum - compares current value to current minimum value
+# Function: Minimum - finds minimum value in given array
 # Parameters:
 # $a0 - array location
 # $a1 - array size
@@ -76,105 +117,154 @@ element: .asciiz "\nCurrent value: "
 .text
 Minimum:
 	li $t0, 0        # start index of array at 0
+	li $t7, 0        # start min at 0
 	# Loop through the array
-	start_loop:
+	start_minloop:
 	
 		# Check if at end of array
-		bge $t0,$a1,exit_loop	# if index >= size exit
+		bge $t0,$a1, exit_minloop	# if index >= size exit
 		
 		# grab the element from the array
 		li $t2,0               # initialize postion in the array
        		mul $t2,$t0,4          # calculate how far into array to go (index*4)
         		add $t2,$t2,$a0        # set memory location of element in the array
-		lw $v0,($t2)           # load the value in array[index] into $v0 to return
-		move $t1, $v0	# save element into $t1 to use for logic
+		lw $t1,($t2)           # load the value in array[index] into $t1 to use for logic
 		
-		beqz $a1, setMin # if index == 0 branch to setMin
-		move $v0, $a0	# if index=0 set minimum ($t7) to first array value
+		beqz $t0, setMin # if index == 0 branch to setMin
 		checkMin:	# if index!=0 then check
-			blt $a0,$v0, setMin	# if value < minValue branch to setMin
-			addi $t0,$t0,1
-		    	j start_loop
+			blt $t1,$t7, setMin	# if value < minValue branch to setMin
+			addi $t0,$t0,1		# increments index
+		    	j start_minloop		# goes back to start of loop
 		setMin:
-			move $v0, $a0
+			move $t7, $t1
 		# End of for loop here
-    		addi $t0,$t0,1
-	    	j start_loop
-	exit_loop:
+    		addi $t0,$t0,1	# increments index
+	    	j start_minloop	# goes back to start of loop
+	exit_minloop:
+		move $v0, $t7
 		jr $ra
 
 #####################################################
-# Function: Maximum - compares current value to current maximum value
+# Function: Maximum - finds maximum value in given array
 # Parameters:
-# $a0 - current array value
-# $a1 - current index value
+# $a0 - array location
+# $a1 - array size
 # Returns
-# $v0 - value of current maximum
+# $v0 - value of maximum
 ######################################################
 .text
 Maximum:
 	li $t0, 0        # start index of array at 0
+	li $t7, 0        # start max at 0
 	# Loop through the array
-	start_loop:
+	start_maxloop:
 	
 		# Check if at end of array
-		bge $t0,$a1,exit_loop	# if index >= size exit
+		bge $t0,$a1, exit_maxloop	# if index >= size exit
 		
 		# grab the element from the array
 		li $t2,0               # initialize postion in the array
        		mul $t2,$t0,4          # calculate how far into array to go (index*4)
         		add $t2,$t2,$a0        # set memory location of element in the array
-		lw $v0,($t2)           # load the value in array[index] into $v0 to return
-		move $t1, $v0	# save element into $t1 to use for logic
+		lw $t1,($t2)           # load the value in array[index] into $t1 to use for logic
 		
-		beqz $a1, setMin # if index == 0 branch to setMin
-		move $v0, $a0	# if index=0 set minimum ($t7) to first array value
-		checkMin:	# if index!=0 then check
-			blt $a0,$v0, setMin	# if value < minValue branch to setMin
-			addi $t0,$t0,1
-		    	j start_loop
-		setMin:
-			move $v0, $a0
+		beqz $t0, setMax # if index == 0 branch to setMin
+		checkMax:	# if index!=0 then check
+			bgt $t1,$t7, setMax	# if value > maxValue branch to setMax
+			addi $t0,$t0,1		# increments index
+		    	j start_maxloop		# goes back to start of loop
+		setMax:
+			move $t7, $t1
 		# End of for loop here
-    		addi $t0,$t0,1
-	    	j start_loop
-	exit_loop:
+    		addi $t0,$t0,1	# increments index
+	    	j start_maxloop	# goes back to start of loop
+	exit_maxloop:
+		move $v0, $t7
 		jr $ra
-
-# orig using outer loop
-	bnez $a1, checkMax # if index != 0 branch to checkMax
-	move $t6, $a0	# if index=0 set maximum ($t6) to first array value
-	move $v0, $t6
-	jr $ra
-	checkMax:	# if index!=0 then check
-		bgt $a0,$t6, setMax	# if value > maxMValue branch to setMax
-		move $v0, $t6
-		jr $ra
-	setMax:
-		move $t6, $a0
-		move $v0, $t6
-    jr $ra
 
 #####################################################
-# Function: Sum - add
+# Function: Sum - add all values in array
 # Parameters:
-# $a0 - current array value
-# $a1 - current index value
+# $a0 - array location
+# $a1 - array size
+# Returns
+# $v0 - value of sum
+######################################################
+.text
+Sum:
+	li $t0, 0        # start index of array at 0
+	li $t7, 0        # start sum at 0
+	# Loop through the array
+	start_sumloop:
+	
+		# Check if at end of array
+		bge $t0,$a1, exit_sumloop	# if index >= size exit
+		
+		# grab the element from the array
+		li $t2,0               # initialize postion in the array
+       		mul $t2,$t0,4          # calculate how far into array to go (index*4)
+        		add $t2,$t2,$a0        # set memory location of element in the array
+		lw $t1,($t2)           # load the value in array[index] into $t1 to use for logic
+		
+		# add element to current sum $t7
+		add $t7,$t7,$t1
+		
+		# End of for loop here
+    		addi $t0,$t0,1	# increments index
+	    	j start_sumloop	# goes back to start of loop
+	exit_sumloop:
+		move $v0, $t7	# move sum $t7 to return value
+		jr $ra
+
+#####################################################
+# Function: Average - average of all values in array
+# Parameters:
+# $a0 - sum value
+# $a1 - array size
 # Returns
 # $v0 - value of current maximum
 ######################################################
 .text
-Sum:
-
-	# get the first element in the array
-#	move $a0, $s0	# load array location into parameter for grabbing elements
-#	li $a1, 0	# load index into parameter for grabbing elements
-#	jal GetElement
-#	move $s2, $v0	# save first element into $s2 for later use
-
-	# get the last element in the array
-#	move $a0, $s0	# load array location into parameter for grabbing elements
-#	lw $a1, size	# load size of array
-#	subi $a1, 1	#  (size-1 = 15) is last index
-#	jal GetElement
-#	move $s3, $v0	# save last element into $s3 for later use
+Average:
+	# avg = sum/size
+	div $v0, $a0, $a1	# $v0 = $a0 / $a1
+	jr $ra
+	
+#####################################################
+# Function: reverseArray - reverses all values in givenarray
+# Parameters:
+# $a0 - array A location
+# $a1 - array B location
+# $a2 - array size
+# Returns
+# $v0 - value of current maximum
+######################################################
+.text
+reverseArray:
+	move $t0, $a2        	# start index of array at size
+	subi $t0, $t0, 1		# subtract size by 1 to get last index of array A
+	li $t7, 0		# start index of array B at 0
+	# Loop through the array
+	start_revloop:
+	
+		# Check if at end of array
+		bltz $t0, exit_revloop	# if index < 0 exit
+		
+		# grab the element from the array A
+		li $t2,0               # initialize postion in the array
+       		mul $t2,$t0,4          # calculate how far into array to go (index*4)
+        		add $t2,$t2,$a0        # set memory location of element in the array A
+		lw $t1,($t2)           # load the value in array[index] into $t1 to use for logic
+		
+		# put element into array B
+		li $t6,0 	# initialize postion in the array
+       		mul $t6,$t7,4	# calculate how far into array to go (index*4)
+        		add $t6,$t6,$a1	# set memory location of element in the array B
+		sw $t1, ($t6)	# store the value in A[index] into B[index]
+		
+		# End of for loop here
+    		addi $t7,$t7,1	# increments index of Array B
+ 		subi $t0,$t0,1	# decrements index of Array A
+	    	j start_revloop	# goes back to start of loop
+	exit_revloop:
+		jr $ra
