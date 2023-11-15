@@ -47,45 +47,19 @@ main:
 	lw $a1, average	# Set up parameter for printing avg
 	jal PrintInt
 	jal PrintNewLine
+	jal PrintNewLine
 	
 	# call reverseArray procedure
-	la $a0, A
-	la $a1, B
-	lw $a2, size
+	la $a0, A	# parameter first array
+	la $a1, B	# parameter second array
+	lw $a2, size	# parameter size of array
 	jal reverseArray
 	# Print output
 	la $a0, outRev
 	jal PrintString
 	la $a0, B	# load address of array B into $a0
 	lw $a1, size	# load size of array into $a1
-	# loop through array
-	li $t0, 0        # start index of array at 0
-	# Loop through the array
-	start_loop:
-		# Check if at end of array
-		bge $t0,$a1, exit_loop	# if index >= size exit
-		
-		# grab the element from the array
-		li $t2,0               # initialize postion in the array
-       		mul $t2,$t0,4          # calculate how far into array to go (index*4)
-        		add $t2,$t2,$a0        # set memory location of element in the array
-		lw $t1,($t2)           # load the value in array[index] into $t1 to use for printing
-		
-		# Print integer. The integer value is in $a1, and 
-		# must # be first moved to $a0.
-		move $a0, $t1	# Set up parameter for printing reversed array element
-		li $v0, 1
-		syscall
-		
-		# load comma to print
-		la $a0, outComma
-		jal PrintString
-		
-		# End of for loop here
-    		addi $t0,$t0,1	# increments index
-	    	j start_loop	# goes back to start of loop
-	exit_loop:
-		
+	jal PrintArray
 		
 	# clean exit
 	jal Exit
@@ -231,7 +205,7 @@ Average:
 	jr $ra
 	
 #####################################################
-# Function: reverseArray - reverses all values in givenarray
+# Function: reverseArray - reverses all values in given array
 # Parameters:
 # $a0 - array A location
 # $a1 - array B location
@@ -267,4 +241,53 @@ reverseArray:
  		subi $t0,$t0,1	# decrements index of Array A
 	    	j start_revloop	# goes back to start of loop
 	exit_revloop:
+		jr $ra
+
+#####################################################
+# Function: PrintArray - prints all values in given array
+# Parameters:
+# $a0 - array A location
+# $a1 - array size
+# Returns
+# None
+######################################################
+.text
+PrintArray:
+	# save parameters to be restored 
+	move $t7, $a0	# save array location
+	move $t6, $a1	# save array size
+	move $t5, $ra 	# save $ra
+	
+	# loop through array
+	li $t0, 0        # start index of array at 0
+	# Loop through the array
+	start_loop:
+		# Check if at end of array
+		bge $t0,$a1, exit_loop	# if index >= size exit
+		
+		# grab the element from the array
+		li $t2,0               # initialize postion in the array
+       		mul $t2,$t0,4          # calculate how far into array to go (index*4)
+        		add $t2,$t2,$a0        # set memory location of element in the array
+		lw $t1,($t2)           # load the value in array[index] into $t1 to use for printing
+		
+		# Print integer. The integer value is in $a1, and 
+		# must # be first moved to $a0.
+		move $a0, $t1	# Set up parameter for printing reversed array element
+		li $v0, 1
+		syscall
+		
+		# load comma to print
+		la $a0, outComma
+		jal PrintString
+		
+		# restore given parameters
+		move $a0, $t7	# restore array location
+		move $a1, $t6	# restore array size
+		
+		# End of for loop here
+    		addi $t0,$t0,1	# increments index
+	    	j start_loop	# goes back to start of loop
+	exit_loop:
+		move $ra, $t5 	# restore ra
 		jr $ra
